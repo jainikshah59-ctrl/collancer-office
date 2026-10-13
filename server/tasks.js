@@ -56,10 +56,14 @@ function progress() {
     const stale = db.prepare("SELECT id FROM agents WHERE status = 'success' AND updated_at < datetime('now', '-6 seconds')").all();
     for (const r of stale) Agents.setStatus(r.id, 'idle', '');
   } catch {}
+  // When the Muse bridge is the executor (production), don't auto-start pending
+  // tasks — leave them for the bridge to claim. The bridge drives everything.
+  const bridgeOnly = process.env.MUSE_BRIDGE_ONLY === 'true';
   const rows = db.prepare("SELECT * FROM tasks WHERE status IN ('pending','running')").all();
   const now = Date.now();
   for (const t of rows) {
     if (isMuseManaged(t)) continue; // real Muse execution — the bridge drives this task
+    if (bridgeOnly && t.status === 'pending') continue; // wait for bridge claim
     const ageS = (now - new Date(t.created_at.replace(' ', 'T') + 'Z').getTime()) / 1000;
     const logs = JSON.parse(t.logs || '[]');
     if (t.status === 'pending' && ageS >= THINK_S) {
