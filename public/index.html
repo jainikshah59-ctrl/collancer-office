@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en" data-cth-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Collancer Office</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><rect width='16' height='16' fill='%23DCAB3C'/><rect x='3' y='3' width='10' height='10' fill='%231A1320'/></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<div id="root">
+  <div class="app">
+    <header class="titlebar">
+      <div class="brand"><span class="logo-dot"></span>COLLANCER OFFICE</div>
+      <span class="auto-mode" id="auto-mode">auto mode on</span>
+      <span class="spacer"></span>
+      <button class="icon-btn" id="btn-theme" title="Toggle theme">&#9728;</button>
+      <button class="icon-btn" id="btn-settings" title="Settings">&#9881;</button>
+      <button class="icon-btn" id="btn-full" title="Fullscreen">&#9974;</button>
+    </header>
+    <div class="main">
+      <div class="floor-wrap" id="floor-wrap">
+        <canvas id="floor"></canvas>
+        <div class="floor-hint">click a desk to select an agent</div>
+        <div class="empty-floor hidden" id="empty-floor">
+          <div class="box pixel-panel-dialog">
+            <div class="pixel-panel-title">Empty Floor</div>
+            <p class="muted">No agents on the floor yet&hellip;</p>
+            <button class="pixel-btn pixel-btn-primary pixel-btn-lg" id="btn-seed">Add agents</button>
+          </div>
+        </div>
+      </div>
+      <div class="splitter" id="splitter"></div>
+      <aside class="sidebar" id="sidebar">
+        <div class="pixel-panel detail-panel" id="detail" style="height:100%"></div>
+      </aside>
+    </div>
+    <footer class="agent-strip" id="strip"></footer>
+  </div>
+  <div class="toasts" id="toasts"></div>
+  <div id="modal-root"></div>
+</div>
+<script src="/app.js"></script>
+</body>
+</html>
