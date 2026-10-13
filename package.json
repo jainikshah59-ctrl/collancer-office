@@ -1,0 +1,1 @@
+{"dependencies":{"cors":"^2.8.5","express":"^4.22.3"},"description":"Collancer Office — a web AI office in the Munder Difflin design, powered by Muse","engines":{"node":">=22"},"main":"server/index.js","name":"collancer-office","scripts":{"seed":"node server/seed.js","start":"node server/index.js"},"version":"1.0.0"}
