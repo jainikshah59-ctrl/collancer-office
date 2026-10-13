@@ -1,1 +1,1 @@
-{"functions":{"api/index.js":{"runtime":"nodejs22.x"}},"rewrites":[{"destination":"/api/index.js","source":"/api/:path*"}]}
+{"rewrites":[{"destination":"/api/index.js","source":"/api/:path*"}]}
