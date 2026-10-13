@@ -59,6 +59,7 @@ function progress() {
   const rows = db.prepare("SELECT * FROM tasks WHERE status IN ('pending','running')").all();
   const now = Date.now();
   for (const t of rows) {
+    if (isMuseManaged(t)) continue; // real Muse execution — the bridge drives this task
     const ageS = (now - new Date(t.created_at.replace(' ', 'T') + 'Z').getTime()) / 1000;
     const logs = JSON.parse(t.logs || '[]');
     if (t.status === 'pending' && ageS >= THINK_S) {
@@ -99,12 +100,53 @@ function progress() {
   }
 }
 
-function pushLog(taskId, text) {
+function pushLog(taskId, text, opts) {
   const t = get(taskId);
   if (!t) return;
   const logs = JSON.parse(t.logs || '[]');
-  logs.push({ at: new Date().toISOString(), text });
+  const entry = { at: new Date().toISOString(), text };
+  if (opts && opts.muse) entry.muse = true;
+  logs.push(entry);
   db.prepare("UPDATE tasks SET logs = ?, updated_at = datetime('now') WHERE id = ?").run(JSON.stringify(logs), taskId);
+}
+
+/** True when a task is under real Muse execution (bridge claimed it). */
+function isMuseManaged(t) {
+  try {
+    const logs = JSON.parse(t.logs || '[]');
+    return logs.some(l => l && l.muse);
+  } catch { return false; }
+}
+
+/** Bridge API: let the external Muse executor claim a task and stream real results.
+ *  Body: { action: 'claim' } | { action: 'log', text } | { action: 'complete', summary, result }
+ */
+function bridgeUpdate(id, body) {
+  const t = get(id);
+  if (!t) return null;
+  const action = (body && body.action) || 'log';
+
+  if (action === 'claim') {
+    // Mark as Muse-managed and move to running immediately
+    pushLog(id, '🧠 Muse picked up this task — real execution started.', { muse: true });
+    db.prepare("UPDATE tasks SET status = 'running', stage = 1, updated_at = datetime('now') WHERE id = ?").run(id);
+    Agents.setStatus(t.agent_id, 'working', t.title);
+    emit('task', { id, agent_id: t.agent_id, status: 'running', title: t.title, muse: true });
+  } else if (action === 'log') {
+    pushLog(id, String(body.text || '').slice(0, 2000), { muse: true });
+    emit('task', { id, agent_id: t.agent_id, status: t.status, progress: true, muse: true });
+  } else if (action === 'complete') {
+    const summary = String(body.summary || 'Done.').slice(0, 2000);
+    const result = body.result ? String(body.result).slice(0, 8000) : '';
+    pushLog(id, '✅ ' + summary, { muse: true });
+    if (result) pushLog(id, '📄 Result:\n' + result, { muse: true });
+    db.prepare(`UPDATE tasks SET status = 'completed', stage = 99,
+      completed_at = datetime('now'), updated_at = datetime('now') WHERE id = ?`).run(id);
+    Agents.setStatus(t.agent_id, 'success', 'Task complete');
+    Agents.setTask(t.agent_id, null);
+    emit('task', { id, agent_id: t.agent_id, status: 'completed', title: t.title, muse: true });
+  }
+  return get(id);
 }
 
 /** Brief the GOD agent. NOVA thinks, then delegates to the best specialist. */
@@ -140,4 +182,4 @@ function brief(text) {
   return { god_task: godTask, task: work, routed_to: target };
 }
 
-module.exports = { create, get, list, progress, pushLog, brief };
+module.exports = { create, get, list, progress, pushLog, brief, bridgeUpdate, isMuseManaged };
