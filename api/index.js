@@ -55,6 +55,26 @@ app.post('/api/brief', (req, res) => {
   catch (e) { res.status(400).json({ ok: false, error: e.message }); }
 });
 
+/* Muse bridge endpoints — let the external Muse executor claim and update tasks.
+ * Secured by a shared bridge token (set BRIDGE_TOKEN env on Vercel). */
+function checkBridge(req, res) {
+  const token = process.env.BRIDGE_TOKEN || 'collancer-bridge-dev';
+  if (req.headers['x-bridge-token'] !== token) {
+    res.status(403).json({ ok: false, error: 'forbidden' });
+    return false;
+  }
+  return true;
+}
+
+app.patch('/api/tasks/:id', (req, res) => {
+  if (!checkBridge(req, res)) return;
+  try {
+    const updated = Tasks.bridgeUpdate(req.params.id, req.body || {});
+    if (!updated) return res.status(404).json({ ok: false, error: 'unknown task' });
+    res.json({ ok: true, task: updated });
+  } catch (e) { res.status(400).json({ ok: false, error: e.message }); }
+});
+
 app.get('/api/events', (req, res) => {
   try {
     const since = parseInt(req.query.since || '0', 10) || 0;
